@@ -43,10 +43,10 @@ CLIENT_SECRET=your_client_secret_here
 DEFAULT_ACCOUNT_NUMBER=your_account_number_here
 ```
 
-The account tools default to `DEFAULT_ACCOUNT_NUMBER`, but each account-specific tool
-also accepts an explicit `account_number` argument. `TASTYTRADE_SESSION_TOKEN`
-or `TASTYTRADE_USERNAME`/`TASTYTRADE_PASSWORD` can still be used as fallback
-auth options for sandbox/dev workflows.
+The account tools default to `DEFAULT_ACCOUNT_NUMBER`, but each
+account-specific tool also accepts an explicit `account_number` argument.
+`TASTYTRADE_SESSION_TOKEN` or `TASTYTRADE_USERNAME`/`TASTYTRADE_PASSWORD` can
+still be used as fallback auth options for sandbox/dev workflows.
 
 ## Run Locally
 
@@ -116,7 +116,7 @@ Type: A
 Value: <server-public-ip>
 ```
 
-2. Keep the MCP server bound to localhost in `.env`:
+1. Keep the MCP server bound to localhost in `.env`:
 
 ```env
 MCP_TRANSPORT=streamable-http
@@ -124,26 +124,40 @@ MCP_HOST=127.0.0.1
 MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
 MCP_ALLOWED_HOSTS=mcp.yourdomain.com
-MCP_ALLOWED_ORIGINS=https://mcp.yourdomain.com,https://chatgpt.com,https://chat.openai.com
+MCP_ALLOWED_ORIGINS=https://mcp.yourdomain.com
 ```
 
-3. Install Caddy on Ubuntu from the official Caddy apt repository:
+Add `https://chatgpt.com` and `https://chat.openai.com` to
+`MCP_ALLOWED_ORIGINS` if your MCP client sends those origins.
+
+1. Install Caddy on Ubuntu from the official Caddy apt repository:
 
 ```bash
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl gpg
-curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt install -y \
+  debian-keyring \
+  debian-archive-keyring \
+  apt-transport-https \
+  curl \
+  gpg
+
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
+  | sudo gpg --dearmor \
+  -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
+  | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+
 sudo chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg
 sudo chmod o+r /etc/apt/sources.list.d/caddy-stable.list
 sudo apt update
 sudo apt install -y caddy
 ```
 
-4. Configure Caddy in `/etc/caddy/Caddyfile`:
+1. Configure Caddy in `/etc/caddy/Caddyfile`:
 
 ```caddyfile
 mcp.yourdomain.com {
-	reverse_proxy 127.0.0.1:8010
+    reverse_proxy 127.0.0.1:8010
 }
 ```
 
@@ -154,7 +168,7 @@ caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
 
-5. Run the MCP server persistently with systemd. Example for a checkout in
+1. Run the MCP server persistently with systemd. Example for a checkout in
 `/home/meshulro/Projects/tastytrade-mcp-server`:
 
 ```ini
@@ -185,7 +199,7 @@ sudo systemctl enable --now tastytrade-mcp
 sudo systemctl status tastytrade-mcp
 ```
 
-6. Verify:
+1. Verify:
 
 ```bash
 dig mcp.yourdomain.com +short
