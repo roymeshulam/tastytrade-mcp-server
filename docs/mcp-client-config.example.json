@@ -12,7 +12,7 @@
         "TASTYTRADE_ENV": "production",
         "REFRESH_TOKEN": "replace-me",
         "CLIENT_SECRET": "replace-me",
-        "ACCOUNT_NUMBER": "replace-me"
+        "DEFAULT_ACCOUNT_NUMBER": "replace-me"
       }
     }
   }

@@ -8,20 +8,23 @@ long-lived server process.
 
 ## Environment
 
-Create `/opt/tastytrade-mcp-server/.env`:
+For the public HTTPS setup used by this project, the MCP process stays on
+localhost port `8010` and Caddy exposes `https://mcp.example.com/mcp`.
+
+Create `.env` in the project checkout:
 
 ```env
 TASTYTRADE_ENV=production
 REFRESH_TOKEN=your_refresh_token_here
 CLIENT_SECRET=your_client_secret_here
-ACCOUNT_NUMBER=your_account_number_here
+DEFAULT_ACCOUNT_NUMBER=your_account_number_here
 
 MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
-MCP_PORT=8000
+MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=127.0.0.1:8000,localhost:8000
-MCP_ALLOWED_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+MCP_ALLOWED_HOSTS=mcp.example.com
+MCP_ALLOWED_ORIGINS=https://mcp.example.com,https://chatgpt.com,https://chat.openai.com
 ```
 
 For direct LAN/VPN access, set `MCP_HOST=0.0.0.0` and include the real host
@@ -34,16 +37,12 @@ For a public client such as mobile ChatGPT, use a public HTTPS URL on a domain:
 https://mcp.example.com/mcp
 ```
 
-Point the domain's DNS `A` record at the server IP, then run the MCP server on
-localhost behind a reverse proxy that terminates TLS:
+Point the domain's DNS `A` record at the server IP:
 
-```env
-MCP_TRANSPORT=streamable-http
-MCP_HOST=127.0.0.1
-MCP_PORT=8000
-MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com,https://chatgpt.com,https://chat.openai.com
+```text
+Host: mcp
+Type: A
+Value: <server-public-ip>
 ```
 
 Avoid using a raw IP address for HTTPS. Free certificate authorities such as
@@ -71,20 +70,17 @@ Cloudflare Access, mTLS, or an HTTPS reverse proxy with authentication.
 Example on Ubuntu:
 
 ```bash
-sudo useradd --system --home /opt/tastytrade-mcp-server --shell /usr/sbin/nologin tastytrade-mcp
-sudo mkdir -p /opt/tastytrade-mcp-server
-sudo chown tastytrade-mcp:tastytrade-mcp /opt/tastytrade-mcp-server
-
-cd /opt/tastytrade-mcp-server
-git clone <your-repo-url> .
+mkdir -p ~/Projects
+cd ~/Projects
+git clone <your-repo-url> tastytrade-mcp-server
+cd tastytrade-mcp-server
 uv sync
 ```
 
-Put `.env` in `/opt/tastytrade-mcp-server/.env` and restrict it:
+Put `.env` in the project root and restrict it:
 
 ```bash
-sudo chown tastytrade-mcp:tastytrade-mcp /opt/tastytrade-mcp-server/.env
-sudo chmod 600 /opt/tastytrade-mcp-server/.env
+chmod 600 .env
 ```
 
 ## systemd
@@ -99,19 +95,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=tastytrade-mcp
-Group=tastytrade-mcp
-WorkingDirectory=/opt/tastytrade-mcp-server
+User=meshulro
+Group=meshulro
+WorkingDirectory=/home/meshulro/Projects/tastytrade-mcp-server
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/usr/bin/uv run tastytrade-mcp-server
+ExecStart=/home/meshulro/.local/bin/uv run tastytrade-mcp-server
 Restart=on-failure
 RestartSec=5
-
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/tastytrade-mcp-server
 
 [Install]
 WantedBy=multi-user.target
@@ -129,21 +119,40 @@ journalctl -u tastytrade-mcp -f
 ## Reverse Proxy
 
 Run the MCP server on localhost and expose it through a reverse proxy that
-handles TLS and authentication.
+handles TLS.
 
-For Caddy, which can automatically issue and renew certificates:
+Install Caddy from the official repository:
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl gpg
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+sudo chmod o+r /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+```
+
+Configure `/etc/caddy/Caddyfile`:
 
 ```caddyfile
 mcp.example.com {
-    reverse_proxy 127.0.0.1:8000
+	reverse_proxy 127.0.0.1:8010
 }
+```
+
+Validate and reload:
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
 ```
 
 For nginx, the upstream is:
 
 ```nginx
 location /mcp {
-    proxy_pass http://127.0.0.1:8000/mcp;
+    proxy_pass http://127.0.0.1:8010/mcp;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -155,5 +164,27 @@ If your public hostname is `mcp.example.com`, include this in `.env`:
 
 ```env
 MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com
+MCP_ALLOWED_ORIGINS=https://mcp.example.com,https://chatgpt.com,https://chat.openai.com
 ```
+
+## Verify
+
+```bash
+dig mcp.example.com +short
+systemctl is-active caddy
+systemctl is-active tastytrade-mcp
+ss -ltnp
+curl -i -H 'Accept: text/event-stream' https://mcp.example.com/mcp
+```
+
+Expected listeners include Caddy on `:80` and `:443`, plus the MCP server on
+`127.0.0.1:8010`. A raw curl request can return `400 Missing session ID`; that
+still confirms that Caddy is reaching the MCP app.
+
+## Authentication
+
+This deployment terminates HTTPS but does not authenticate MCP clients. Caddy
+`basic_auth` can be added for MCP Inspector testing, but ChatGPT remote MCP
+connectors expect OAuth, not Basic Auth. For production brokerage data, add an
+OAuth-compatible layer or restrict access with VPN/Tailscale/Cloudflare Access
+before relying on this endpoint publicly.

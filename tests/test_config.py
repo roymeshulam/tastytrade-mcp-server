@@ -13,7 +13,7 @@ def test_settings_default_to_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyP
     monkeypatch.delenv("TASTYTRADE_API_BASE_URL", raising=False)
     monkeypatch.delenv("REFRESH_TOKEN", raising=False)
     monkeypatch.delenv("CLIENT_SECRET", raising=False)
-    monkeypatch.delenv("ACCOUNT_NUMBER", raising=False)
+    monkeypatch.delenv("DEFAULT_ACCOUNT_NUMBER", raising=False)
 
     settings = Settings.from_env()
 
@@ -74,14 +74,14 @@ def test_settings_load_dotenv_from_current_directory(
     monkeypatch.delenv("TASTYTRADE_SESSION_TOKEN", raising=False)
     monkeypatch.delenv("REFRESH_TOKEN", raising=False)
     monkeypatch.delenv("CLIENT_SECRET", raising=False)
-    monkeypatch.delenv("ACCOUNT_NUMBER", raising=False)
+    monkeypatch.delenv("DEFAULT_ACCOUNT_NUMBER", raising=False)
     (tmp_path / ".env").write_text(
         "\n".join(
             [
                 "TASTYTRADE_ENV=production",
                 'REFRESH_TOKEN="refresh-token-from-dotenv"',
                 'CLIENT_SECRET="client-secret-from-dotenv"',
-                "ACCOUNT_NUMBER=5WT00000",
+                "DEFAULT_ACCOUNT_NUMBER=5WT00000",
             ]
         ),
         encoding="utf-8",

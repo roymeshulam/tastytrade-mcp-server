@@ -34,7 +34,7 @@ class Settings:
             session_token=_empty_to_none(os.getenv("TASTYTRADE_SESSION_TOKEN")),
             refresh_token=_empty_to_none(os.getenv("REFRESH_TOKEN")),
             client_secret=_empty_to_none(os.getenv("CLIENT_SECRET")),
-            account_number=_empty_to_none(os.getenv("ACCOUNT_NUMBER")),
+            account_number=_empty_to_none(os.getenv("DEFAULT_ACCOUNT_NUMBER")),
             username=_empty_to_none(os.getenv("TASTYTRADE_USERNAME")),
             password=_empty_to_none(os.getenv("TASTYTRADE_PASSWORD")),
         )
@@ -53,7 +53,7 @@ class Settings:
 
     def default_account_number(self) -> str:
         if not self.account_number:
-            raise ValueError("Set ACCOUNT_NUMBER or pass account_number explicitly.")
+            raise ValueError("Set DEFAULT_ACCOUNT_NUMBER or pass account_number explicitly.")
         return self.account_number
 
 

@@ -31,7 +31,7 @@ Windows PowerShell:
 ```powershell
 uv venv
 uv pip install -e ".[dev]"
-Copy-Item .env.example .env
+cp .env.example .env
 ```
 
 Set your `.env` values:
@@ -40,15 +40,15 @@ Set your `.env` values:
 TASTYTRADE_ENV=production
 REFRESH_TOKEN=your_refresh_token_here
 CLIENT_SECRET=your_client_secret_here
-ACCOUNT_NUMBER=your_account_number_here
+DEFAULT_ACCOUNT_NUMBER=your_account_number_here
 ```
 
-The account tools default to `ACCOUNT_NUMBER`, but each account-specific tool
+The account tools default to `DEFAULT_ACCOUNT_NUMBER`, but each account-specific tool
 also accepts an explicit `account_number` argument. `TASTYTRADE_SESSION_TOKEN`
 or `TASTYTRADE_USERNAME`/`TASTYTRADE_PASSWORD` can still be used as fallback
 auth options for sandbox/dev workflows.
 
-## Run
+## Run Locally
 
 For a local MCP client that launches the server over `stdio`:
 
@@ -56,15 +56,15 @@ For a local MCP client that launches the server over `stdio`:
 uv run tastytrade-mcp-server
 ```
 
-For a long-running remote MCP server on Linux, set these values in `.env`:
+For a long-running local HTTP MCP server on port `8010`, set:
 
 ```env
 MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
-MCP_PORT=8000
+MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.yourdomain.com
-MCP_ALLOWED_ORIGINS=https://mcp.yourdomain.com,https://chatgpt.com,https://chat.openai.com
+MCP_ALLOWED_HOSTS=127.0.0.1:8010,localhost:8010
+MCP_ALLOWED_ORIGINS=http://127.0.0.1:8010,http://localhost:8010
 ```
 
 Then run:
@@ -73,25 +73,33 @@ Then run:
 uv run tastytrade-mcp-server
 ```
 
-The local upstream URL will be:
+The local endpoint is:
 
 ```text
-http://127.0.0.1:8000/mcp
+http://127.0.0.1:8010/mcp
 ```
 
-Put Caddy, nginx, Cloudflare Tunnel, or another authenticated HTTPS proxy in
-front of it for public access.
+The root path `/` is not a web UI, so `404 Not Found` there is expected.
 
-Windows PowerShell:
+## Test With MCP Inspector
 
-```powershell
-uv run tastytrade-mcp-server
+Run Inspector in a second terminal:
+
+```bash
+npx @modelcontextprotocol/inspector
 ```
 
-For MCP clients, adapt [docs/mcp-client-config.example.json](docs/mcp-client-config.example.json).
+Open the URL printed by Inspector and connect with:
 
-For remote/server deployment, use `MCP_TRANSPORT=streamable-http` and see
-[docs/deployment.md](docs/deployment.md).
+```text
+Transport: Streamable HTTP
+URL: http://127.0.0.1:8010/mcp
+```
+
+If Inspector asks for proxy authentication, use the session token printed in
+the Inspector terminal. Test `list_accounts` first, then account-specific tools.
+
+## Public HTTPS Deployment
 
 Remote clients such as mobile ChatGPT should use a public HTTPS URL, preferably
 on a domain name:
@@ -100,10 +108,112 @@ on a domain name:
 https://mcp.yourdomain.com/mcp
 ```
 
+1. Point DNS at the server:
+
+```text
+Host: mcp
+Type: A
+Value: <server-public-ip>
+```
+
+2. Keep the MCP server bound to localhost in `.env`:
+
+```env
+MCP_TRANSPORT=streamable-http
+MCP_HOST=127.0.0.1
+MCP_PORT=8010
+MCP_STREAMABLE_HTTP_PATH=/mcp
+MCP_ALLOWED_HOSTS=mcp.yourdomain.com
+MCP_ALLOWED_ORIGINS=https://mcp.yourdomain.com,https://chatgpt.com,https://chat.openai.com
+```
+
+3. Install Caddy on Ubuntu from the official Caddy apt repository:
+
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl gpg
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+sudo chmod o+r /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+```
+
+4. Configure Caddy in `/etc/caddy/Caddyfile`:
+
+```caddyfile
+mcp.yourdomain.com {
+	reverse_proxy 127.0.0.1:8010
+}
+```
+
+Then reload Caddy:
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+5. Run the MCP server persistently with systemd. Example for a checkout in
+`/home/meshulro/Projects/tastytrade-mcp-server`:
+
+```ini
+[Unit]
+Description=tastytrade MCP Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=meshulro
+Group=meshulro
+WorkingDirectory=/home/meshulro/Projects/tastytrade-mcp-server
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/meshulro/.local/bin/uv run tastytrade-mcp-server
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Save that as `/etc/systemd/system/tastytrade-mcp.service`, then run:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now tastytrade-mcp
+sudo systemctl status tastytrade-mcp
+```
+
+6. Verify:
+
+```bash
+dig mcp.yourdomain.com +short
+systemctl is-active caddy
+systemctl is-active tastytrade-mcp
+curl -i -H 'Accept: text/event-stream' https://mcp.yourdomain.com/mcp
+```
+
+For a raw curl request, `400 Missing session ID` from the MCP server is a useful
+sign that HTTPS and proxying work. A real MCP client will establish the session.
+
 Plain HTTP on a raw IP address, such as `http://176.57.150.218:8080/mcp`, can be
 useful for temporary testing but should not be used for brokerage account data.
 Most public clients also expect trusted HTTPS certificates, which normally
 requires a domain name rather than a bare IP address.
+
+### Authentication Note
+
+This server currently authenticates to tastytrade using credentials in `.env`,
+but it does not authenticate MCP clients by itself. Caddy `basic_auth` can
+protect browser or Inspector testing, but ChatGPT remote MCP setup expects an
+OAuth-compatible flow, not Basic Auth. Do not leave a public brokerage-data MCP
+endpoint exposed without an access-control layer suitable for your client.
+
+For more deployment detail, see [docs/deployment.md](docs/deployment.md).
+
+For MCP clients that launch this process over stdio, adapt
+[docs/mcp-client-config.example.json](docs/mcp-client-config.example.json).
 
 ## Tools
 
@@ -116,7 +226,7 @@ requires a domain name rather than a bare IP address.
 
 ## Development
 
-```powershell
+```bash
 uv run pytest
 uv run ruff check .
 ```

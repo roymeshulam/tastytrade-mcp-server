@@ -1,16 +1,33 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import Field
 
 from .client import TastytradeClient
 from .config import Settings
 
 
 McpTransport = Literal["stdio", "sse", "streamable-http"]
+OptionalAccountNumber = Annotated[
+    str | None,
+    Field(description="Optional tastytrade account number. Uses DEFAULT_ACCOUNT_NUMBER when omitted."),
+]
+OptionalDate = Annotated[
+    str | None,
+    Field(description="Optional date filter in YYYY-MM-DD format."),
+]
+OptionalTransactionType = Annotated[
+    str | None,
+    Field(description="Optional tastytrade transaction type filter, such as Trade, Receive Deliver, Money Movement, or Fee."),
+]
+OptionalSymbol = Annotated[
+    str | None,
+    Field(description="Optional symbol filter, for example AAPL, SPY, or /ES."),
+]
 
 Settings.from_env()
 
@@ -142,13 +159,13 @@ async def search_orders(
 
 @mcp.tool()
 async def get_account_transactions(
-    account_number: str | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    transaction_type: str | None = None,
-    symbol: str | None = None,
+    account_number: OptionalAccountNumber = None,
+    start_date: OptionalDate = None,
+    end_date: OptionalDate = None,
+    transaction_type: OptionalTransactionType = None,
+    symbol: OptionalSymbol = None,
 ) -> dict[str, Any]:
-    """Fetch account transactions, optionally filtered by date, type, or symbol."""
+    """Fetch tastytrade account transactions with optional account, date range, type, and symbol filters."""
     async with _with_client() as client:
         return await client.account_transactions(
             _account_number(account_number),
