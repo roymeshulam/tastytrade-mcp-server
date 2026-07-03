@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "tastytrade": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:/Users/user/Projects/tastytrade-mcp-server",
+        "run",
+        "tastytrade-mcp-server"
+      ],
+      "env": {
+        "TASTYTRADE_ENV": "production",
+        "REFRESH_TOKEN": "replace-me",
+        "CLIENT_SECRET": "replace-me",
+        "ACCOUNT_NUMBER": "replace-me"
+      }
+    }
+  }
+}
