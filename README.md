@@ -15,6 +15,19 @@ cancel orders.
 
 ## Setup
 
+Linux/macOS:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/roymeshulam/tastytrade-mcp-server.git
+cd tastytrade-mcp-server
+uv sync
+cp .env.example .env
+chmod 600 .env
+```
+
+Windows PowerShell:
+
 ```powershell
 uv venv
 uv pip install -e ".[dev]"
@@ -36,6 +49,40 @@ or `TASTYTRADE_USERNAME`/`TASTYTRADE_PASSWORD` can still be used as fallback
 auth options for sandbox/dev workflows.
 
 ## Run
+
+For a local MCP client that launches the server over `stdio`:
+
+```bash
+uv run tastytrade-mcp-server
+```
+
+For a long-running remote MCP server on Linux, set these values in `.env`:
+
+```env
+MCP_TRANSPORT=streamable-http
+MCP_HOST=127.0.0.1
+MCP_PORT=8000
+MCP_STREAMABLE_HTTP_PATH=/mcp
+MCP_ALLOWED_HOSTS=mcp.yourdomain.com
+MCP_ALLOWED_ORIGINS=https://mcp.yourdomain.com,https://chatgpt.com,https://chat.openai.com
+```
+
+Then run:
+
+```bash
+uv run tastytrade-mcp-server
+```
+
+The local upstream URL will be:
+
+```text
+http://127.0.0.1:8000/mcp
+```
+
+Put Caddy, nginx, Cloudflare Tunnel, or another authenticated HTTPS proxy in
+front of it for public access.
+
+Windows PowerShell:
 
 ```powershell
 uv run tastytrade-mcp-server
