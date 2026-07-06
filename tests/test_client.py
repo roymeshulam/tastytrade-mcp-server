@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from tastytrade_mcp_server.client import TastytradeClient
+from tastytrade_mcp_server.client import TastytradeClient, format_equity_option_symbol
 from tastytrade_mcp_server.config import Settings
 
 
@@ -95,3 +95,53 @@ async def test_refreshes_oauth_token_when_refresh_token_is_configured() -> None:
         b"grant_type=refresh_token&refresh_token=refresh-token&client_secret=client-secret"
     )
     assert requests[1].headers["authorization"] == "Bearer access-token"
+
+
+@pytest.mark.asyncio
+async def test_fetches_market_data_by_type() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": {"items": [{"symbol": "SPX"}]}})
+
+    transport = httpx.MockTransport(handler)
+    http_client = httpx.AsyncClient(transport=transport, base_url="https://example.test")
+    client = TastytradeClient(
+        Settings(api_base_url="https://example.test", session_token="token-123"),
+        http_client=http_client,
+    )
+
+    try:
+        await client.market_data_by_type("index", "spx")
+    finally:
+        await http_client.aclose()
+
+    assert requests[0].url.path == "/market-data/by-type"
+    assert requests[0].url.params["index"] == "SPX"
+
+
+@pytest.mark.asyncio
+async def test_fetches_market_data_for_equity_option_symbol() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": {"items": [{"symbol": "SPXW  260727P07250000"}]}})
+
+    transport = httpx.MockTransport(handler)
+    http_client = httpx.AsyncClient(transport=transport, base_url="https://example.test")
+    client = TastytradeClient(
+        Settings(api_base_url="https://example.test", session_token="token-123"),
+        http_client=http_client,
+    )
+    symbol = format_equity_option_symbol("SPXW", "2026-07-27", "put", "7250")
+
+    try:
+        await client.market_data_by_type("equity-option", symbol)
+    finally:
+        await http_client.aclose()
+
+    assert symbol == "SPXW  260727P07250000"
+    assert requests[0].url.path == "/market-data/by-type"
+    assert requests[0].url.params["equity-option"] == "SPXW  260727P07250000"

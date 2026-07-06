@@ -4,8 +4,8 @@ A lightweight, read-only Model Context Protocol (MCP) server for tastytrade
 brokerage account data.
 
 The first version exposes account discovery, balances, positions, live orders,
-order search, and transactions. It intentionally does not submit, replace, or
-cancel orders.
+order search, transactions, and fresh market data by product type. It
+intentionally does not submit, replace, or cancel orders.
 
 ## Requirements
 
@@ -237,6 +237,22 @@ For MCP clients that launch this process over stdio, adapt
 - `get_live_orders`
 - `search_orders`
 - `get_account_transactions`
+- `get_market_data`
+
+`get_market_data` calls tastytrade's `/market-data/by-type` endpoint. Pass the
+API product type and symbol, for example:
+
+```text
+product_type=index
+symbol=SPX
+```
+
+For equity options, you can pass the API-ready padded OCC-style symbol directly:
+
+```text
+product_type=equity-option
+symbol=SPXW  260727P07250000
+```
 
 ## Development
 

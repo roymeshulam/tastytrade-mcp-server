@@ -12,6 +12,15 @@ from .config import Settings
 
 
 McpTransport = Literal["stdio", "sse", "streamable-http"]
+MarketDataProductType = Annotated[
+    Literal["equity", "equity-option", "future", "future-option", "cryptocurrency", "index"],
+    Field(
+        description=(
+            "tastytrade market data product type. This becomes the query key for "
+            "/market-data/by-type, such as index=SPX or equity-option=<OCC symbol>."
+        )
+    ),
+]
 OptionalAccountNumber = Annotated[
     str | None,
     Field(description="Optional tastytrade account number. Uses DEFAULT_ACCOUNT_NUMBER when omitted."),
@@ -27,6 +36,15 @@ OptionalTransactionType = Annotated[
 OptionalSymbol = Annotated[
     str | None,
     Field(description="Optional symbol filter, for example AAPL, SPY, or /ES."),
+]
+MarketDataSymbol = Annotated[
+    str,
+    Field(
+        description=(
+            "Market data symbol for the selected product type, for example SPX, AAPL, "
+            "or SPXW  260727P07250000."
+        )
+    ),
 ]
 
 Settings.from_env()
@@ -174,6 +192,16 @@ async def get_account_transactions(
             transaction_type=transaction_type,
             symbol=symbol,
         )
+
+
+@mcp.tool()
+async def get_market_data(
+    product_type: MarketDataProductType,
+    symbol: MarketDataSymbol,
+) -> dict[str, Any]:
+    """Fetch fresh tastytrade market data for one product using /market-data/by-type."""
+    async with _with_client() as client:
+        return await client.market_data_by_type(product_type, symbol)
 
 
 def main() -> None:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 import httpx
@@ -10,6 +12,16 @@ from .config import Settings
 
 class TastytradeError(RuntimeError):
     """Raised when tastytrade returns an unsuccessful response."""
+
+
+MARKET_DATA_PRODUCT_TYPES = {
+    "equity",
+    "equity-option",
+    "future",
+    "future-option",
+    "cryptocurrency",
+    "index",
+}
 
 
 class TastytradeClient:
@@ -105,6 +117,15 @@ class TastytradeClient:
         )
         return await self._request("GET", f"/accounts/{account_number}/transactions", params=params)
 
+    async def market_data_by_type(self, product_type: str, symbol: str) -> dict[str, Any]:
+        product_type = product_type.strip().lower()
+        if product_type not in MARKET_DATA_PRODUCT_TYPES:
+            supported = ", ".join(sorted(MARKET_DATA_PRODUCT_TYPES))
+            raise ValueError(f"product_type must be one of: {supported}.")
+
+        formatted_symbol = format_market_data_symbol(product_type, symbol)
+        return await self._request("GET", "/market-data/by-type", params={product_type: formatted_symbol})
+
     async def _request(
         self,
         method: str,
@@ -182,6 +203,67 @@ class TastytradeClient:
 
 def _drop_none(values: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in values.items() if value is not None}
+
+
+def format_market_data_symbol(product_type: str, symbol: str) -> str:
+    value = symbol.strip()
+    if not value:
+        raise ValueError("symbol is required.")
+
+    if product_type in {"equity", "equity-option", "future", "future-option", "cryptocurrency", "index"}:
+        return value.upper()
+    return value
+
+
+def format_equity_option_symbol(
+    root_symbol: str,
+    expiration_date: str,
+    option_type: str,
+    strike_price: str | float | int | Decimal,
+) -> str:
+    root = root_symbol.strip().upper()
+    if not root:
+        raise ValueError("root_symbol is required.")
+    if len(root) > 6:
+        raise ValueError("root_symbol must be 6 characters or fewer for equity option symbology.")
+
+    expiration = _format_option_expiration(expiration_date)
+    call_put = _format_option_type(option_type)
+    strike = _format_option_strike(strike_price)
+    return f"{root:<6}{expiration}{call_put}{strike}"
+
+
+def _format_option_expiration(expiration_date: str) -> str:
+    value = expiration_date.strip()
+    if len(value) == 6 and value.isdigit():
+        return value
+
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("expiration_date must be in YYYY-MM-DD or YYMMDD format.") from exc
+    return parsed.strftime("%y%m%d")
+
+
+def _format_option_type(option_type: str) -> str:
+    value = option_type.strip().upper()
+    if value in {"C", "CALL"}:
+        return "C"
+    if value in {"P", "PUT"}:
+        return "P"
+    raise ValueError("option_type must be call, put, C, or P.")
+
+
+def _format_option_strike(strike_price: str | float | int | Decimal) -> str:
+    try:
+        strike = Decimal(str(strike_price)).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("strike_price must be a numeric value.") from exc
+
+    scaled = int(strike * 1000)
+    if scaled < 0 or scaled > 99_999_999:
+        raise ValueError("strike_price must fit the 8-digit equity option strike field.")
+    return f"{scaled:08d}"
 
 
 def _error_detail(response: httpx.Response) -> str:
