@@ -46,6 +46,17 @@ MarketDataSymbol = Annotated[
         )
     ),
 ]
+MarketMetricsSymbols = Annotated[
+    list[str],
+    Field(
+        description=(
+            "One or more underlying symbols to retrieve Market Metrics for, such as SPX, AAPL, or BRK/B. "
+            "Use this tool for implied volatility index, IV rank/percentile, liquidity rank/rating, "
+            "beta, correlation, dividend, borrow, market cap, earnings, and per-expiration option IV data."
+        ),
+        min_length=1,
+    ),
+]
 
 Settings.from_env()
 
@@ -202,6 +213,18 @@ async def get_market_data(
     """Fetch fresh tastytrade market data for one product using /market-data/by-type."""
     async with _with_client() as client:
         return await client.market_data_by_type(product_type, symbol)
+
+
+@mcp.tool()
+async def get_market_metrics(symbols: MarketMetricsSymbols) -> dict[str, Any]:
+    """Fetch tastytrade Market Metrics for underlying symbols using /market-metrics.
+
+    Returns raw tastytrade data.items entries with implied volatility index,
+    IV rank/percentile, liquidity rank/rating, beta, correlation, dividend,
+    borrow, market-cap, earnings, and option-expiration implied volatilities.
+    """
+    async with _with_client() as client:
+        return await client.market_metrics(symbols)
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
@@ -126,6 +126,10 @@ class TastytradeClient:
         formatted_symbol = format_market_data_symbol(product_type, symbol)
         return await self._request("GET", "/market-data/by-type", params={product_type: formatted_symbol})
 
+    async def market_metrics(self, symbols: Sequence[str] | str) -> dict[str, Any]:
+        formatted_symbols = format_market_metrics_symbols(symbols)
+        return await self._request("GET", "/market-metrics", params={"symbols": formatted_symbols})
+
     async def _request(
         self,
         method: str,
@@ -213,6 +217,14 @@ def format_market_data_symbol(product_type: str, symbol: str) -> str:
     if product_type in {"equity", "equity-option", "future", "future-option", "cryptocurrency", "index"}:
         return value.upper()
     return value
+
+
+def format_market_metrics_symbols(symbols: Sequence[str] | str) -> str:
+    raw_symbols = symbols.split(",") if isinstance(symbols, str) else symbols
+    values = [symbol.strip().upper() for symbol in raw_symbols if symbol.strip()]
+    if not values:
+        raise ValueError("symbols is required.")
+    return ",".join(values)
 
 
 def format_equity_option_symbol(

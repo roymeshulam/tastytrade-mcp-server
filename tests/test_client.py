@@ -145,3 +145,40 @@ async def test_fetches_market_data_for_equity_option_symbol() -> None:
     assert symbol == "SPXW  260727P07250000"
     assert requests[0].url.path == "/market-data/by-type"
     assert requests[0].url.params["equity-option"] == "SPXW  260727P07250000"
+
+
+@pytest.mark.asyncio
+async def test_fetches_market_metrics_for_symbols() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "items": [
+                        {
+                            "symbol": "SPX",
+                            "implied-volatility-index": "0.15896731",
+                            "liquidity-rating": 3,
+                        }
+                    ]
+                }
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    http_client = httpx.AsyncClient(transport=transport, base_url="https://example.test")
+    client = TastytradeClient(
+        Settings(api_base_url="https://example.test", session_token="token-123"),
+        http_client=http_client,
+    )
+
+    try:
+        await client.market_metrics(["spx", "brk/b"])
+    finally:
+        await http_client.aclose()
+
+    assert requests[0].url.path == "/market-metrics"
+    assert requests[0].url.params["symbols"] == "SPX,BRK/B"

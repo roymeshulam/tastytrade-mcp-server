@@ -3,8 +3,9 @@
 A lightweight, read-only Model Context Protocol (MCP) server for tastytrade
 brokerage account data.
 
-The first version exposes account discovery, balances, positions, live orders,
-order search, transactions, and fresh market data by product type. It
+The server exposes account discovery, balances, positions, live orders, order
+search, transactions, fresh market data by product type, and Market Metrics
+volatility and liquidity data. It
 intentionally does not submit, replace, or cancel orders.
 
 ## Requirements
@@ -238,6 +239,7 @@ For MCP clients that launch this process over stdio, adapt
 - `search_orders`
 - `get_account_transactions`
 - `get_market_data`
+- `get_market_metrics`
 
 `get_market_data` calls tastytrade's `/market-data/by-type` endpoint. Pass the
 API product type and symbol, for example:
@@ -253,6 +255,28 @@ For equity options, you can pass the API-ready padded OCC-style symbol directly:
 product_type=equity-option
 symbol=SPXW  260727P07250000
 ```
+
+`get_market_metrics` calls tastytrade's `/market-metrics` endpoint. Use it when
+you need underlying-level volatility, liquidity, beta/correlation, dividend,
+borrow, market cap, earnings, or per-expiration option implied volatility data.
+Pass one or more underlying symbols as a JSON array:
+
+```text
+symbols=["SPX"]
+```
+
+Multiple symbols are supported:
+
+```text
+symbols=["AAPL", "FB", "BRK/B"]
+```
+
+The response is the raw tastytrade payload. Typical `data.items` fields include
+`symbol`, `implied-volatility-index`, `implied-volatility-index-5-day-change`,
+`implied-volatility-index-rank`, `implied-volatility-percentile`,
+`liquidity-value`, `liquidity-rank`, `liquidity-rating`, `beta`,
+`corr-spy-3month`, dividend fields, borrow fields, `market-cap`, earnings
+fields, and `option-expiration-implied-volatilities`.
 
 ## Development
 
