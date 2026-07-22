@@ -6,7 +6,7 @@ Treat remote deployment as sensitive infrastructure.
 Preferred public endpoint shape:
 
 ```text
-https://mcp.example.com/mcp
+https://tastytrade.roymeshulam.com/mcp
 ```
 
 Recommended `.env` for a public HTTPS deployment behind a reverse proxy:
@@ -16,8 +16,8 @@ MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
 MCP_PORT=8000
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com,https://chatgpt.com,https://chat.openai.com
+MCP_ALLOWED_HOSTS=tastytrade.roymeshulam.com
+MCP_ALLOWED_ORIGINS=https://tastytrade.roymeshulam.com,https://chatgpt.com,https://chat.openai.com
 ```
 
 Do not recommend naked public HTTP for real use. A raw IP endpoint like

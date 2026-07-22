@@ -71,8 +71,8 @@ MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
 MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com
+MCP_ALLOWED_HOSTS=tastytrade.roymeshulam.com
+MCP_ALLOWED_ORIGINS=https://tastytrade.roymeshulam.com
 ```
 
 | Variable | Default | Description |
@@ -128,6 +128,6 @@ MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
 MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com
+MCP_ALLOWED_HOSTS=tastytrade.roymeshulam.com
+MCP_ALLOWED_ORIGINS=https://tastytrade.roymeshulam.com
 ```

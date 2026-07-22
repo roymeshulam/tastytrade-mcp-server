@@ -9,7 +9,7 @@ long-lived server process.
 ## Environment
 
 For the public HTTPS setup used by this project, the MCP process stays on
-localhost port `8010` and Caddy exposes `https://mcp.example.com/mcp`.
+localhost port `8010` and Caddy exposes `https://tastytrade.roymeshulam.com/mcp`.
 
 Create `.env` in the project checkout:
 
@@ -23,18 +23,18 @@ MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
 MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com,https://chatgpt.com,https://chat.openai.com
+MCP_ALLOWED_HOSTS=tastytrade.roymeshulam.com
+MCP_ALLOWED_ORIGINS=https://tastytrade.roymeshulam.com,https://chatgpt.com,https://chat.openai.com
 ```
 
 For direct LAN/VPN access, set `MCP_HOST=0.0.0.0` and include the real host
 header clients will use in `MCP_ALLOWED_HOSTS`, such as
-`mcp.example.com,10.0.0.12:8000`.
+`tastytrade.roymeshulam.com,10.0.0.12:8000`.
 
 For a public client such as mobile ChatGPT, use a public HTTPS URL on a domain:
 
 ```text
-https://mcp.example.com/mcp
+https://tastytrade.roymeshulam.com/mcp
 ```
 
 Point the domain's DNS `A` record at the server IP:
@@ -136,7 +136,7 @@ sudo apt install -y caddy
 Configure `/etc/caddy/Caddyfile`:
 
 ```caddyfile
-mcp.example.com {
+tastytrade.roymeshulam.com {
 	reverse_proxy 127.0.0.1:8010
 }
 ```
@@ -160,21 +160,21 @@ location /mcp {
 }
 ```
 
-If your public hostname is `mcp.example.com`, include this in `.env`:
+For the public hostname `tastytrade.roymeshulam.com`, include this in `.env`:
 
 ```env
-MCP_ALLOWED_HOSTS=mcp.example.com
-MCP_ALLOWED_ORIGINS=https://mcp.example.com,https://chatgpt.com,https://chat.openai.com
+MCP_ALLOWED_HOSTS=tastytrade.roymeshulam.com
+MCP_ALLOWED_ORIGINS=https://tastytrade.roymeshulam.com,https://chatgpt.com,https://chat.openai.com
 ```
 
 ## Verify
 
 ```bash
-dig mcp.example.com +short
+dig tastytrade.roymeshulam.com +short
 systemctl is-active caddy
 systemctl is-active tastytrade-mcp
 ss -ltnp
-curl -i -H 'Accept: text/event-stream' https://mcp.example.com/mcp
+curl -i -H 'Accept: text/event-stream' https://tastytrade.roymeshulam.com/mcp
 ```
 
 Expected listeners include Caddy on `:80` and `:443`, plus the MCP server on

@@ -43,7 +43,7 @@ an access-control layer appropriate for your MCP client, such as:
 For public clients such as mobile ChatGPT, prefer:
 
 ```text
-https://mcp.example.com/mcp
+https://tastytrade.roymeshulam.com/mcp
 ```
 
 Avoid self-signed certificates and bare-IP HTTPS for public clients.

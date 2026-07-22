@@ -106,7 +106,7 @@ Remote clients such as mobile ChatGPT should use a public HTTPS URL, preferably
 on a domain name:
 
 ```text
-https://mcp.yourdomain.com/mcp
+https://tastytrade.roymeshulam.com/mcp
 ```
 
 1. Point DNS at the server:
@@ -124,8 +124,8 @@ MCP_TRANSPORT=streamable-http
 MCP_HOST=127.0.0.1
 MCP_PORT=8010
 MCP_STREAMABLE_HTTP_PATH=/mcp
-MCP_ALLOWED_HOSTS=mcp.yourdomain.com
-MCP_ALLOWED_ORIGINS=https://mcp.yourdomain.com
+MCP_ALLOWED_HOSTS=tastytrade.roymeshulam.com
+MCP_ALLOWED_ORIGINS=https://tastytrade.roymeshulam.com
 ```
 
 Add `https://chatgpt.com` and `https://chat.openai.com` to
@@ -157,7 +157,7 @@ sudo apt install -y caddy
 1. Configure Caddy in `/etc/caddy/Caddyfile`:
 
 ```caddyfile
-mcp.yourdomain.com {
+tastytrade.roymeshulam.com {
     reverse_proxy 127.0.0.1:8010
 }
 ```
@@ -203,10 +203,10 @@ sudo systemctl status tastytrade-mcp
 1. Verify:
 
 ```bash
-dig mcp.yourdomain.com +short
+dig tastytrade.roymeshulam.com +short
 systemctl is-active caddy
 systemctl is-active tastytrade-mcp
-curl -i -H 'Accept: text/event-stream' https://mcp.yourdomain.com/mcp
+curl -i -H 'Accept: text/event-stream' https://tastytrade.roymeshulam.com/mcp
 ```
 
 For a raw curl request, `400 Missing session ID` from the MCP server is a useful
